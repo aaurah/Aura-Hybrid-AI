@@ -1,15 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AuraAI Orchestrator API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: chat
+    description: Chat and completions
+  - name: models
+    description: Model registry and management
+  - name: embeddings
+    description: Text embeddings
+  - name: rag
+    description: Retrieval-augmented generation
+  - name: tools
+    description: Tool execution
+  - name: sessions
+    description: Chat session management
+  - name: admin
+    description: Admin and observability
+
 paths:
   /healthz:
     get:
@@ -24,6 +38,340 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /v1/chat:
+    post:
+      operationId: chat
+      tags: [chat]
+      summary: Send a chat message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatInput"
+      responses:
+        "200":
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatCompletion"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/models:
+    get:
+      operationId: listModels
+      tags: [models]
+      summary: List available models
+      description: Returns all models available in the registry and from the Ollama server
+      responses:
+        "200":
+          description: List of models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Model"
+
+  /v1/models/{modelId}:
+    get:
+      operationId: getModel
+      tags: [models]
+      summary: Get model details
+      parameters:
+        - name: modelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Model details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Model"
+        "404":
+          description: Model not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/embeddings:
+    post:
+      operationId: createEmbedding
+      tags: [embeddings]
+      summary: Create text embeddings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmbeddingInput"
+      responses:
+        "200":
+          description: Embedding result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingResponse"
+
+  /v1/rag/ingest:
+    post:
+      operationId: ingestDocument
+      tags: [rag]
+      summary: Ingest a document for RAG
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentInput"
+      responses:
+        "201":
+          description: Document ingested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /v1/rag/documents:
+    get:
+      operationId: listDocuments
+      tags: [rag]
+      summary: List ingested documents
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+
+  /v1/rag/documents/{documentId}:
+    delete:
+      operationId: deleteDocument
+      tags: [rag]
+      summary: Delete an ingested document
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Document deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/rag/query:
+    post:
+      operationId: ragQuery
+      tags: [rag]
+      summary: Query the RAG knowledge base
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagQueryInput"
+      responses:
+        "200":
+          description: Retrieved chunks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagResult"
+
+  /v1/tools:
+    get:
+      operationId: listTools
+      tags: [tools]
+      summary: List available tools
+      responses:
+        "200":
+          description: List of tools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tool"
+
+  /v1/tools/run:
+    post:
+      operationId: runTool
+      tags: [tools]
+      summary: Execute a tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToolRunInput"
+      responses:
+        "200":
+          description: Tool execution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolRunResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List all chat sessions
+      responses:
+        "200":
+          description: Sessions list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Create a new chat session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionInput"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /v1/sessions/{sessionId}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get a session with its messages
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateSession
+      tags: [sessions]
+      summary: Update session settings
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionUpdate"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+    delete:
+      operationId: deleteSession
+      tags: [sessions]
+      summary: Delete a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Session deleted
+
+  /v1/admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get platform statistics
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /v1/admin/logs:
+    get:
+      operationId: getAdminLogs
+      tags: [admin]
+      summary: Get recent conversation and tool logs
+      responses:
+        "200":
+          description: Recent logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LogEntry"
+
+  /v1/admin/ollama-status:
+    get:
+      operationId: getOllamaStatus
+      tags: [admin]
+      summary: Check Ollama server connectivity and status
+      responses:
+        "200":
+          description: Ollama status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OllamaStatus"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +382,476 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          enum: [user, assistant, system, tool]
+        content:
+          type: string
+        model:
+          type: ["string", "null"]
+        tokensUsed:
+          type: ["integer", "null"]
+        latencyMs:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - role
+        - content
+        - createdAt
+
+    ChatInput:
+      type: object
+      properties:
+        sessionId:
+          type: ["string", "null"]
+        message:
+          type: string
+        model:
+          type: ["string", "null"]
+        mode:
+          type: string
+          enum: [chat, code, vision]
+        systemPrompt:
+          type: ["string", "null"]
+        temperature:
+          type: ["number", "null"]
+        maxTokens:
+          type: ["integer", "null"]
+        ragEnabled:
+          type: boolean
+        toolsEnabled:
+          type: boolean
+        tools:
+          type: array
+          items:
+            type: string
+      required:
+        - message
+        - mode
+        - ragEnabled
+        - toolsEnabled
+
+    ChatCompletion:
+      type: object
+      properties:
+        message:
+          $ref: "#/components/schemas/Message"
+        sessionId:
+          type: string
+        model:
+          type: string
+        ragChunksUsed:
+          type: integer
+        toolCallsExecuted:
+          type: integer
+      required:
+        - message
+        - sessionId
+        - model
+        - ragChunksUsed
+        - toolCallsExecuted
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        type:
+          type: string
+          enum: [chat, code, vision]
+        available:
+          type: boolean
+        defaultTemperature:
+          type: number
+        defaultMaxTokens:
+          type: integer
+        description:
+          type: string
+      required:
+        - id
+        - displayName
+        - type
+        - available
+        - defaultTemperature
+        - defaultMaxTokens
+        - description
+
+    EmbeddingInput:
+      type: object
+      properties:
+        text:
+          type: string
+        model:
+          type: ["string", "null"]
+      required:
+        - text
+
+    EmbeddingResponse:
+      type: object
+      properties:
+        embedding:
+          type: array
+          items:
+            type: number
+        model:
+          type: string
+        dimensions:
+          type: integer
+      required:
+        - embedding
+        - model
+        - dimensions
+
+    DocumentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        source:
+          type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - title
+        - content
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        source:
+          type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        chunkCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - content
+        - chunkCount
+        - createdAt
+
+    RagQueryInput:
+      type: object
+      properties:
+        query:
+          type: string
+        topK:
+          type: integer
+      required:
+        - query
+
+    RagChunk:
+      type: object
+      properties:
+        documentId:
+          type: string
+        documentTitle:
+          type: string
+        content:
+          type: string
+        score:
+          type: number
+      required:
+        - documentId
+        - documentTitle
+        - content
+        - score
+
+    RagResult:
+      type: object
+      properties:
+        chunks:
+          type: array
+          items:
+            $ref: "#/components/schemas/RagChunk"
+        query:
+          type: string
+      required:
+        - chunks
+        - query
+
+    Tool:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [http, shell, git]
+        inputSchema:
+          type: object
+          additionalProperties: true
+      required:
+        - name
+        - description
+        - type
+        - inputSchema
+
+    ToolRunInput:
+      type: object
+      properties:
+        tool:
+          type: string
+        input:
+          type: object
+          additionalProperties: true
+      required:
+        - tool
+        - input
+
+    ToolRunResponse:
+      type: object
+      properties:
+        tool:
+          type: string
+        success:
+          type: boolean
+        output:
+          type: string
+        error:
+          type: ["string", "null"]
+        durationMs:
+          type: integer
+      required:
+        - tool
+        - success
+        - output
+        - durationMs
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        model:
+          type: string
+        mode:
+          type: string
+          enum: [chat, code, vision]
+        systemPrompt:
+          type: ["string", "null"]
+        temperature:
+          type: number
+        maxTokens:
+          type: integer
+        ragEnabled:
+          type: boolean
+        toolsEnabled:
+          type: boolean
+        messageCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - title
+        - model
+        - mode
+        - temperature
+        - maxTokens
+        - ragEnabled
+        - toolsEnabled
+        - messageCount
+        - createdAt
+        - updatedAt
+
+    SessionInput:
+      type: object
+      properties:
+        title:
+          type: string
+        model:
+          type: ["string", "null"]
+        mode:
+          type: string
+          enum: [chat, code, vision]
+        systemPrompt:
+          type: ["string", "null"]
+        temperature:
+          type: ["number", "null"]
+        maxTokens:
+          type: ["integer", "null"]
+        ragEnabled:
+          type: boolean
+        toolsEnabled:
+          type: boolean
+      required:
+        - title
+
+    SessionUpdate:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        mode:
+          type: ["string", "null"]
+        systemPrompt:
+          type: ["string", "null"]
+        temperature:
+          type: ["number", "null"]
+        maxTokens:
+          type: ["integer", "null"]
+        ragEnabled:
+          type: ["boolean", "null"]
+        toolsEnabled:
+          type: ["boolean", "null"]
+
+    SessionDetail:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/Session"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+      required:
+        - session
+        - messages
+
+    AdminStats:
+      type: object
+      properties:
+        totalSessions:
+          type: integer
+        totalMessages:
+          type: integer
+        totalDocuments:
+          type: integer
+        totalToolRuns:
+          type: integer
+        avgResponseMs:
+          type: number
+        modelUsage:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelUsageStat"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+      required:
+        - totalSessions
+        - totalMessages
+        - totalDocuments
+        - totalToolRuns
+        - avgResponseMs
+        - modelUsage
+        - recentActivity
+
+    ModelUsageStat:
+      type: object
+      properties:
+        model:
+          type: string
+        count:
+          type: integer
+        tokens:
+          type: integer
+      required:
+        - model
+        - count
+        - tokens
+
+    ActivityItem:
+      type: object
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - type
+        - description
+        - createdAt
+
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [chat, tool, rag, error]
+        sessionId:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        summary:
+          type: string
+        latencyMs:
+          type: ["integer", "null"]
+        tokensUsed:
+          type: ["integer", "null"]
+        success:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - summary
+        - success
+        - createdAt
+
+    OllamaStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        baseUrl:
+          type: string
+        availableModels:
+          type: array
+          items:
+            type: string
+        version:
+          type: ["string", "null"]
+        error:
+          type: ["string", "null"]
+      required:
+        - connected
+        - baseUrl
+        - availableModels

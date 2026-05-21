@@ -1,0 +1,114 @@
+You are the lead engineer for AuraAI.
+
+Build a full hybrid AI platform with two API layers and full image capabilities.
+
+==========================
+EXTERNAL API (/v1/)
+==========================
+
+1. Chat
+   POST /v1/chat
+
+2. Embeddings
+   POST /v1/embeddings
+
+3. Vision Read (Image Understanding)
+   POST /v1/vision/read
+   Inputs:
+     - image (base64 or URL)
+     - prompt
+     - mode: caption | ocr | analysis
+
+4. Image Generation
+   POST /v1/vision/generate
+   Inputs:
+     - prompt
+     - negativePrompt
+     - width, height
+     - steps
+     - model: sdxl | flux | custom
+
+5. RAG
+   POST /v1/rag/query
+
+6. Tools (safe)
+   POST /v1/tools/run
+
+7. Users
+   POST /v1/users/login
+   POST /v1/users/register
+   GET  /v1/users/me
+
+8. Admin
+   GET  /v1/admin/models
+   GET  /v1/admin/logs
+   POST /v1/admin/reload-config
+
+==========================
+INTERNAL API (/internal/)
+==========================
+
+1. Router
+   POST /internal/router/route
+
+2. Ollama Proxy
+   POST /internal/ollama/generate
+   POST /internal/ollama/embed
+   POST /internal/ollama/vision
+
+3. Vision Internal
+   POST /internal/vision/read
+   POST /internal/vision/generate
+   POST /internal/vision/upscale
+   POST /internal/vision/variation
+   POST /internal/vision/inpaint
+
+4. Tools (full power)
+   POST /internal/tools/execute
+
+5. Memory
+   POST /internal/memory/store
+   POST /internal/memory/search
+   POST /internal/memory/delete
+
+6. Agent Loop
+   POST /internal/agent/step
+   POST /internal/agent/run
+
+7. Admin Internal
+   POST /internal/admin/restart
+   POST /internal/admin/pull-models
+   POST /internal/admin/flush-cache
+
+==========================
+ARCHITECTURE REQUIREMENTS
+==========================
+
+- Node.js + TypeScript backend
+- Fastify or Express
+- Modular file structure
+- Model registry for llama, codellama, llava, sdxl, flux
+- RAG pipeline with embeddings + vector store
+- Tool system with safe external tools and powerful internal tools
+- Agent loop implementation
+- JWT auth + API keys + RBAC
+- Config-driven design (YAML/JSON)
+- Optional Next.js UI
+- Full image read + image generation support
+
+==========================
+DELIVERABLES
+==========================
+
+- Full folder structure
+- All API routes
+- Model registry
+- Router logic
+- Memory engine
+- Tool executor
+- Agent loop
+- Vision read + generate modules
+- Config files
+- README with setup instructions
+
+Work step-by-step, generate code for each file, and maintain clean architecture.

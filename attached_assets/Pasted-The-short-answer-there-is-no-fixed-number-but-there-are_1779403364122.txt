@@ -1,0 +1,114 @@
+The short answer: there is no fixed number, but there are hundreds of AI models in the world today — and over 100+ models just inside Ollama’s ecosystem alone according to recent sources.
+Here’s the clear breakdown based on the latest data.
+
+---
+
+⭐ How many AIs exist like Ollama, LLaMA, etc.?
+
+There are hundreds of open‑source AI models and dozens of major model families globally.
+Just the Ollama library alone has 100+ models as of 2026  practicalweb....
+
+But globally, when you include:
+
+• LLaMA family
+• Mistral family
+• Qwen family
+• Gemma family
+• Phi family
+• DeepSeek family
+• Vision models (LLaVA, Moondream, etc.)
+• Diffusion models (Stable Diffusion, SDXL, Flux)
+• Code models (Code LLaMA, StarCoder, DeepSeek Coder)
+• Math models (WizardMath, Dolphin)
+• Instruction models (Vicuna, Alpaca)
+
+
+…the total number easily exceeds 300+ distinct models, and thousands of fine‑tuned variants.
+
+---
+
+🧠 Major AI Model Families (the “big groups”)
+
+These are the dominant families powering most open‑source AI:
+
+• LLaMA family (LLaMA 2, 3, 3.1, 3.3)
+• Mistral family (7B, Mixtral, etc.)
+• Qwen family (Alibaba)
+• Gemma family (Google)
+• Phi family (Microsoft)
+• DeepSeek family (R1, Coder, V3)
+• Code models (Code LLaMA, StarCoder, DeepSeek Coder)
+• Vision models (LLaVA, Moondream, Qwen-VL)
+• Diffusion models (Stable Diffusion, SDXL, Flux)
+
+
+---
+
+📦 How many models does Ollama support?
+
+Ollama has over 100 models in its library as of April 2026  practicalweb....
+
+These include:
+
+• LLaMA 3 / 3.1 / 3.3
+• Mistral 7B
+• Gemma 2
+• Phi‑3
+• Qwen
+• DeepSeek
+• LLaVA
+• WizardMath
+• Dolphin
+• Vicuna
+• Alpaca
+• NeuralChat
+• Stable Beluga
+…and many more.
+
+
+---
+
+🏆 Top 15 most popular open‑source models (2026)
+
+Based on rankings from DeployBase and Collabnix:
+
+• LLaMA 3 / 3.1 / 3.3 — best all‑purpose  deploybase.ai
+• DeepSeek R1 — best reasoning  deploybase.ai
+• Mistral 7B — fastest small model  deploybase.ai
+• Phi‑3 Mini — best tiny model  deploybase.ai
+• Gemma 2 — clean writing model  selftuts.in
+• Qwen — best multilingual  selftuts.in
+• DeepSeek Coder — coding specialist  selftuts.in
+• LLaVA — vision model
+• StarCoder — coding
+• WizardMath — math
+• Vicuna — instruction
+• Alpaca — lightweight
+• NeuralChat — creative
+• Stable Beluga — creative
+• SDXL / Flux — image generation
+
+
+---
+
+📊 Summary Table — How many AIs exist?
+
+Category	Count	Examples	
+Major model families	~12	LLaMA, Mistral, Qwen, Gemma, Phi	
+Open‑source LLMs	300+	All variants + fine‑tunes	
+Vision models	50+	LLaVA, Moondream, Qwen‑VL	
+Diffusion models	100+	SDXL, Flux, SD1.5, SD2.1	
+Models in Ollama	100+	LLaMA, Mistral, Gemma, Phi, DeepSeek, etc.  practicalweb...	
+Total global models	500+	Across all categories	
+
+
+---
+
+🔥 Parminder, if you want, I can also give you:
+
+• A full list of every major model family
+• A list of all models you should install for AuraAI
+• A curated list of the best models for hybrid AI systems
+
+
+Which direction do you want next?

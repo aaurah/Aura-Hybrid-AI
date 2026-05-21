@@ -1,0 +1,94 @@
+You are the lead engineer for a project called AuraAI.
+
+High-level goal:
+Design and implement AuraAI as a hybrid AI platform that runs on a remote Linux server using Ollama (LLaMA, Code LLaMA, LLaVA, etc.) and exposes a clean API and optional web UI. The codebase will live in this Replit project, but the main inference server is a separate machine running Ollama.
+
+Core requirements:
+1) Backend architecture
+   - Use Node.js + TypeScript.
+   - Use a lightweight HTTP framework (Fastify or Express).
+   - Implement an "Aura Orchestrator" service that:
+     - Connects to an Ollama server over HTTP (default http://SERVER_IP:11434).
+     - Supports multiple models: llama3, codellama, llava, etc.
+     - Provides endpoints:
+       - POST /v1/chat
+       - GET /v1/models
+       - POST /v1/embeddings
+       - POST /v1/rag/query
+       - POST /v1/tools/run
+     - Implements model routing based on a "mode" field (chat, code, vision).
+     - Injects system prompts and supports per-session configuration.
+
+2) Model registry and routing
+   - Create a model registry (TypeScript module or JSON config) that defines:
+     - model id
+     - display name
+     - type (chat, code, vision)
+     - default parameters (temperature, max tokens, etc.).
+   - Implement a router that chooses the correct model based on:
+     - requested mode (chat/code/vision)
+     - optional explicit model override.
+
+3) Memory and RAG
+   - Integrate Postgres (or a simple in-memory store for the first iteration).
+   - Add support for embeddings via Ollama.
+   - Implement a simple RAG pipeline:
+     - Ingest text documents (e.g., Markdown, code snippets).
+     - Store embeddings.
+     - On chat requests with RAG enabled, retrieve top-k relevant chunks and prepend them to the context.
+
+4) Tools and agent loop
+   - Define a tool schema (name, description, input schema).
+   - Implement tool runners for:
+     - HTTP requests (generic fetch).
+     - Shell commands (restricted, safe).
+     - Git operations (status, diff, read-only).
+   - Implement an agent loop where:
+     - The model can request tool calls via a structured format.
+     - The orchestrator executes tools and feeds results back to the model.
+   - Keep the design modular so new tools can be added easily.
+
+5) Web UI (optional but desired)
+   - Use Next.js or a simple React SPA in a /ui folder.
+   - Features:
+     - Multi-tab chat interface.
+     - Model selector (llama3, codellama, llava).
+     - System prompt editor.
+     - Toggles for tools and RAG.
+     - Basic admin view for logs and configuration.
+
+6) Security and configuration
+   - Use environment variables for:
+     - OLLAMA_BASE_URL
+     - DATABASE_URL
+     - JWT_SECRET or API_KEY
+   - Implement simple API key auth for all endpoints.
+   - Provide a config file for:
+     - model registry
+     - tool definitions
+     - routing rules.
+
+7) Developer experience
+   - Provide clear scripts in package.json:
+     - dev, build, start, lint, test.
+   - Add a README that explains:
+     - How to run the orchestrator locally.
+     - How to point it at a remote Ollama server.
+     - How to add a new model or tool.
+   - Keep the code modular and well-typed.
+
+How I want you to work:
+- Start by scaffolding the project structure and core TypeScript setup.
+- Then implement the Ollama client and /v1/chat endpoint.
+- After that, add model registry and routing.
+- Then add embeddings and RAG.
+- Then add tools and the agent loop.
+- Finally, add the web UI and admin features.
+
+At every step:
+- Propose the file structure.
+- Show me the code for each new file or major change.
+- Explain briefly how to run and test the new functionality.
+- Refactor when needed to keep the architecture clean and extensible.
+
+Your priority is to make AuraAI a clean, extensible, production-ready foundation that I can later connect to other products (like OrahAI and OrahDEX).
