@@ -1,49 +1,99 @@
 routing:
   rules:
+    # ── Reasoning / Agent tasks ──────────────────────────────
+    - name: deep_reasoning
+      condition:
+        mode: reasoning
+      target: deepseek-r1
+      priority: 20
+
+    - name: agent_reasoning
+      condition:
+        mode: agent
+      target: deepseek-r1
+      priority: 18
+
+    # ── Coding ───────────────────────────────────────────────
     - name: code_routing
       condition:
         mode: code
-      target: codellama
-      priority: 10
+      target: deepseek-coder-v2
+      priority: 15
 
+    # ── Vision (image read) ──────────────────────────────────
     - name: vision_routing
       condition:
         mode: vision
-      target: llava
-      priority: 10
+      target: llava:v1.6
+      priority: 15
 
+    - name: ocr_routing
+      condition:
+        mode: ocr
+      target: qwen2-vl
+      priority: 15
+
+    # ── Fast / Edge ──────────────────────────────────────────
+    - name: fast_routing
+      condition:
+        mode: fast
+      target: phi3:mini
+      priority: 12
+
+    # ── Multilingual ─────────────────────────────────────────
+    - name: multilingual_routing
+      condition:
+        mode: multilingual
+      target: qwen2.5:72b
+      priority: 12
+
+    # ── Long context fallback ────────────────────────────────
     - name: long_context
       condition:
-        minTokens: 3000
-      target: mixtral
+        minTokens: 4000
+      target: llama3.1:70b
       priority: 5
 
+    # ── Default chat ─────────────────────────────────────────
     - name: default_chat
       condition:
         mode: chat
-      target: llama3
+      target: llama3.1:70b
       priority: 1
 
-  fallback: llama3
+  fallback:   llama3.1:70b
+  fastModel:  phi3:mini
   embedModel: nomic-embed-text
 
+# ─────────────────────────────────────────────────────────────
 agent:
-  maxSteps: 10
-  maxTokensPerStep: 2048
+  maxSteps: 12
+  maxTokensPerStep: 4096
   toolCallFormat: "json"
+  reasoningModel: deepseek-r1
+  codingModel: deepseek-coder-v2
+  fastModel: phi3:mini
   systemPrompt: |
-    You are AuraAI, an intelligent AI agent with access to tools.
+    You are AuraAI, an intelligent hybrid AI agent.
+    You have access to tools for web browsing, code execution, file operations, and memory.
+
     When you need to use a tool, respond with:
     <tool_call>{"tool": "tool_name", "input": {...}}</tool_call>
+
     After receiving tool results, continue reasoning and use more tools if needed.
-    When done, provide a final answer without any tool_call tags.
+    When done, provide your final answer without any tool_call tags.
 
+    Always think step by step before acting.
+    Use the most capable model for each subtask.
+
+# ─────────────────────────────────────────────────────────────
 memory:
-  maxChunksPerQuery: 5
-  chunkSize: 500
-  chunkOverlap: 50
-  similarityThreshold: 0.3
+  maxChunksPerQuery: 8
+  chunkSize: 512
+  chunkOverlap: 64
+  similarityThreshold: 0.25
 
+# ─────────────────────────────────────────────────────────────
 security:
   jwtExpiresIn: "24h"
   apiKeyPrefix: "aura_"

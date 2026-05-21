@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   Send, Terminal, Image as ImageIcon, Code, Sparkles, Loader2, Plus,
   Bot, Wrench, Database, ChevronDown, User, Cpu, SlidersHorizontal, X,
+  Brain, Zap, Eye, Hash, GitBranch, Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,15 @@ interface AgentStep {
   success?: boolean;
 }
 
+interface RoutingInfo {
+  model: string;
+  modelName: string;
+  category: string;
+  confidence: number;
+  reason: string;
+  pipeline: string[];
+}
+
 interface LocalMessage {
   id: string;
   role: "user" | "assistant" | "agent";
@@ -40,7 +50,31 @@ interface LocalMessage {
   latencyMs?: number;
   agentSteps?: AgentStep[];
   model?: string;
+  routing?: RoutingInfo;
+  imageUrl?: string;
 }
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  reasoning:    <Brain className="w-3 h-3" />,
+  code:         <Code className="w-3 h-3" />,
+  vision:       <Eye className="w-3 h-3" />,
+  ocr:          <Eye className="w-3 h-3" />,
+  "image-gen":  <ImageIcon className="w-3 h-3" />,
+  fast:         <Zap className="w-3 h-3" />,
+  multilingual: <Hash className="w-3 h-3" />,
+  chat:         <Terminal className="w-3 h-3" />,
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  reasoning:    "text-violet-400 border-violet-500/30 bg-violet-500/10",
+  code:         "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
+  vision:       "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+  ocr:          "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+  "image-gen":  "text-pink-400 border-pink-500/30 bg-pink-500/10",
+  fast:         "text-yellow-400 border-yellow-500/30 bg-yellow-500/10",
+  multilingual: "text-blue-400 border-blue-500/30 bg-blue-500/10",
+  chat:         "text-primary border-primary/30 bg-primary/10",
+};
 
 const API_BASE = "/api";
 
@@ -114,6 +148,10 @@ export function Chat() {
   const [agentRunning, setAgentRunning] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [creatingSession, setCreatingSession] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingMessageRef = useRef<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -166,31 +204,76 @@ export function Chat() {
     ...localMessages,
   ];
 
-  const sendToSession = (sessionId: string, message: string) => {
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setImagePreview(dataUrl);
+      // Strip the data:image/...;base64, prefix — send raw base64
+      setImageBase64(dataUrl.split(",")[1] ?? null);
+    };
+    reader.readAsDataURL(file);
+    // Reset so same file can be picked again
+    e.target.value = "";
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageBase64(null);
+  };
+
+  const sendToSession = (sessionId: string, message: string, imgBase64?: string | null) => {
     chatMutation.mutate(
       {
         data: {
           sessionId,
           message,
-          mode: mode === "code" ? "code" : "chat",
+          // Let the hybrid router decide — don't force a model
+          mode: imgBase64 ? "vision" : mode === "code" ? "code" : "chat",
           ragEnabled: sessionDetail?.session?.ragEnabled ?? false,
           toolsEnabled: sessionDetail?.session?.toolsEnabled ?? false,
-          model: sessionDetail?.session?.model ?? "llama3",
-        },
+          ...(imgBase64 ? { imageBase64: imgBase64 } : {}),
+        } as any,
       },
       {
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["session", sessionId] }),
+        onSuccess: (data: any) => {
+          // Capture routing decision from response and show inline
+          if (data?.routing) {
+            setLocalMessages((p) => [
+              ...p,
+              {
+                id: data.message?.id ?? `r-${Date.now()}`,
+                role: "assistant" as const,
+                content: data.message?.content ?? "",
+                model: data.routing.model,
+                tokensUsed: data.message?.tokensUsed ?? undefined,
+                latencyMs: data.message?.latencyMs ?? undefined,
+                routing: data.routing as RoutingInfo,
+              },
+            ]);
+          }
+          queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+        },
         onError: (err: any) => {
-          const msg = err?.response?.data?.error ?? err?.message ?? "Request failed";
-          const isOllama = msg.includes("ECONNREFUSED") || msg.includes("11434") || msg.includes("Ollama");
+          const raw = err?.response?.data?.error ?? err?.message ?? "Request failed";
+          const isOllama =
+            raw.includes("ECONNREFUSED") ||
+            raw.includes("11434") ||
+            raw.includes("fetch failed") ||
+            raw.includes("Internal Server Error") ||
+            raw.includes("500");
           setLocalMessages((p) => [
             ...p,
             {
               id: `err-${Date.now()}`,
               role: "assistant" as const,
               content: isOllama
-                ? "⚠️ Ollama is not reachable. Set the OLLAMA_BASE_URL environment variable to point to your running Ollama instance, then restart the API server."
-                : `⚠️ ${msg}`,
+                ? "⚠️ Ollama is not reachable or returned an error. Make sure the Ollama Server workflow is running, then try again."
+                : `⚠️ ${raw}`,
             },
           ]);
         },
@@ -199,12 +282,24 @@ export function Chat() {
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
-    const message = input;
+    const message = input.trim();
+    const img = imageBase64;
+    const imgPreview = imagePreview;
+    if (!message && !img) return;
+
     setInput("");
+    clearImage();
+
+    // Build the user message bubble (with optional image)
+    const userMsg: LocalMessage = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      content: message || "(image)",
+      imageUrl: imgPreview ?? undefined,
+    };
 
     if (mode === "agent") {
-      setLocalMessages((p) => [...p, { id: `u-${Date.now()}`, role: "user", content: message }]);
+      setLocalMessages((p) => [...p, userMsg]);
       setAgentRunning(true);
       try {
         const result = await runAgent({ message, model: sessionDetail?.session?.model ?? undefined });
@@ -222,20 +317,20 @@ export function Chat() {
 
     // If a session is ready, send immediately
     if (activeSessionId && sessionDetail?.session) {
-      sendToSession(activeSessionId, message);
+      sendToSession(activeSessionId, message || "Describe this image.", img);
       return;
     }
 
     // No session yet — auto-create one, then send
-    setLocalMessages((p) => [...p, { id: `u-${Date.now()}`, role: "user", content: message }]);
+    setLocalMessages((p) => [...p, userMsg]);
     createSession.mutate(
-      { data: { title: message.slice(0, 40), mode: "chat" } },
+      { data: { title: (message || "Image").slice(0, 40), mode: img ? "vision" : "chat" } },
       {
         onSuccess: (s) => {
           queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
           setActiveSessionId(s.id);
           setLocalMessages([]);
-          sendToSession(s.id, message);
+          sendToSession(s.id, message || "Describe this image.", img);
         },
         onError: () => {
           setLocalMessages((p) => [...p, { id: `e-${Date.now()}`, role: "assistant", content: "Failed to create session. Please try again." }]);
@@ -368,20 +463,43 @@ export function Chat() {
                         )}
                       </div>
                     )}
-                    <div className={`rounded-xl px-3 py-2.5 ${
-                      msg.role === "user" ? "bg-primary text-primary-foreground"
-                      : msg.role === "agent" ? "bg-emerald-500/10 border border-emerald-500/20"
-                      : "bg-muted border border-border"
-                    }`}>
-                      <p className="text-sm whitespace-pre-wrap font-mono leading-relaxed break-words">{msg.content}</p>
-                      {msg.role !== "user" && (msg.tokensUsed || msg.model) && (
-                        <div className="text-[10px] text-muted-foreground mt-1.5 flex gap-2">
-                          {msg.model && <span className="opacity-60">{msg.model}</span>}
-                          {msg.latencyMs && <span>{msg.latencyMs}ms</span>}
-                          {msg.tokensUsed && <span>{msg.tokensUsed} tok</span>}
-                        </div>
-                      )}
-                    </div>
+                    {/* Routing badge — shows which specialist was activated */}
+                    {msg.routing && (
+                      <div className={`self-start flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono ${CATEGORY_COLORS[msg.routing.category] ?? CATEGORY_COLORS["chat"]}`}>
+                        {CATEGORY_ICONS[msg.routing.category] ?? <Terminal className="w-3 h-3" />}
+                        <span>{msg.routing.modelName}</span>
+                        {msg.routing.pipeline.length > 1 && (
+                          <span className="flex items-center gap-0.5 opacity-60">
+                            <GitBranch className="w-2.5 h-2.5" />
+                            {msg.routing.pipeline.length}
+                          </span>
+                        )}
+                        <span className="opacity-40">·</span>
+                        <span className="opacity-60 capitalize">{msg.routing.category}</span>
+                      </div>
+                    )}
+                    {/* Image attachment preview in bubble */}
+                    {msg.imageUrl && (
+                      <div className={`rounded-xl overflow-hidden max-w-[220px] ${msg.role === "user" ? "self-end" : "self-start"}`}>
+                        <img src={msg.imageUrl} alt="attached" className="w-full object-cover rounded-xl" />
+                      </div>
+                    )}
+                    {/* Only show text bubble if there's actual text content */}
+                    {(msg.content && msg.content !== "(image)") && (
+                      <div className={`rounded-xl px-3 py-2.5 ${
+                        msg.role === "user" ? "bg-primary text-primary-foreground"
+                        : msg.role === "agent" ? "bg-emerald-500/10 border border-emerald-500/20"
+                        : "bg-muted border border-border"
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap font-mono leading-relaxed break-words">{msg.content}</p>
+                        {msg.role !== "user" && (msg.tokensUsed || msg.latencyMs) && (
+                          <div className="text-[10px] text-muted-foreground mt-1.5 flex gap-2 opacity-60">
+                            {msg.latencyMs && <span>{msg.latencyMs}ms</span>}
+                            {msg.tokensUsed && <span>{msg.tokensUsed} tok</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {msg.role === "user" && (
                     <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5">
@@ -398,7 +516,9 @@ export function Chat() {
                 </div>
                 <div className={`rounded-xl px-3 py-2.5 flex items-center gap-2 ${mode === "agent" ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-muted border border-border"}`}>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span className="text-sm text-muted-foreground font-mono">{mode === "agent" ? "Reasoning…" : "Thinking…"}</span>
+                  <span className="text-sm text-muted-foreground font-mono">
+                    {mode === "agent" ? "Agent reasoning…" : "Routing to best model…"}
+                  </span>
                 </div>
               </div>
             )}
@@ -415,37 +535,85 @@ export function Chat() {
 
       {/* Input */}
       <div className="px-3 py-3 sm:px-4 border-t border-border bg-background shrink-0">
-        <div className="flex gap-2 items-end max-w-3xl mx-auto">
-          {mode === "agent" ? (
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="Give the agent a task…"
-              className="flex-1 font-mono text-sm bg-card border-border min-h-[48px] max-h-28 resize-none"
-              disabled={isLoading}
-              rows={1}
-            />
-          ) : (
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              placeholder={creatingSession ? "Setting up session…" : "Send a message…"}
-              className="flex-1 font-mono text-sm bg-card border-border h-12"
-              disabled={isLoading || creatingSession}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-            />
+        <div className="flex flex-col gap-2 max-w-3xl mx-auto">
+
+          {/* Image preview strip */}
+          {imagePreview && (
+            <div className="relative self-start">
+              <img
+                src={imagePreview}
+                alt="attached"
+                className="h-20 w-20 object-cover rounded-lg border border-border"
+              />
+              <button
+                onClick={clearImage}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center shadow-md"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           )}
-          <Button
-            className={`h-12 w-12 shrink-0 ${mode === "agent" ? "bg-emerald-500 hover:bg-emerald-500/90 text-white" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading || creatingSession}
-          >
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-          </Button>
+
+          <div className="flex gap-2 items-end">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImagePick}
+            />
+
+            {/* Image upload button */}
+            {mode !== "agent" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-12 w-12 shrink-0 p-0 border-border"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || creatingSession}
+                title="Attach image"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+            )}
+
+            {mode === "agent" ? (
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder="Give the agent a task…"
+                className="flex-1 font-mono text-sm bg-card border-border min-h-[48px] max-h-28 resize-none"
+                disabled={isLoading}
+                rows={1}
+              />
+            ) : (
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                placeholder={
+                  creatingSession ? "Setting up session…"
+                  : imagePreview ? "Ask about this image… (or send as-is)"
+                  : "Send a message…"
+                }
+                className="flex-1 font-mono text-sm bg-card border-border h-12"
+                disabled={isLoading || creatingSession}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+              />
+            )}
+
+            <Button
+              className={`h-12 w-12 shrink-0 ${mode === "agent" ? "bg-emerald-500 hover:bg-emerald-500/90 text-white" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}
+              onClick={handleSend}
+              disabled={(!input.trim() && !imageBase64) || isLoading || creatingSession}
+            >
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

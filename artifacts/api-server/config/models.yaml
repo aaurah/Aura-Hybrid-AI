@@ -1,110 +1,186 @@
 models:
-  # ── Chat models ──────────────────────────────────────────
-  - id: llama3
-    displayName: "LLaMA 3"
-    type: chat
-    defaultTemperature: 0.7
-    defaultMaxTokens: 2048
-    description: "Meta's LLaMA 3 — general purpose chat model."
-
-  - id: "llama3:instruct"
-    displayName: "LLaMA 3 Instruct"
-    type: chat
-    defaultTemperature: 0.7
-    defaultMaxTokens: 2048
-    description: "LLaMA 3 fine-tuned for instruction following."
-
-  - id: mistral
-    displayName: "Mistral 7B"
-    type: chat
-    defaultTemperature: 0.7
-    defaultMaxTokens: 2048
-    description: "Excellent reasoning in a compact 7B package."
-
-  - id: mixtral
-    displayName: "Mixtral 8x7B"
-    type: chat
+  # ════════════════════════════════════════════════
+  # 🧠  REASONING / GENERAL INTELLIGENCE
+  # ════════════════════════════════════════════════
+  - id: llama3.1:70b
+    displayName: "LLaMA 3.1 70B"
+    type: reasoning
     defaultTemperature: 0.7
     defaultMaxTokens: 4096
-    description: "Mistral MoE — high capability, efficient inference."
+    description: "Meta LLaMA 3.1 70B — primary brain. Best open-source general intelligence. Deep reasoning, planning, agent loops, long context."
 
-  # ── Code models ───────────────────────────────────────────
+  - id: deepseek-r1
+    displayName: "DeepSeek R1"
+    type: reasoning
+    defaultTemperature: 0.6
+    defaultMaxTokens: 8192
+    description: "DeepSeek R1 — best chain-of-thought reasoning. Symbolic logic, multi-step planning, hard problems."
+
+  - id: qwen2.5:72b
+    displayName: "Qwen 2.5 72B"
+    type: reasoning
+    defaultTemperature: 0.7
+    defaultMaxTokens: 8192
+    description: "Alibaba Qwen 2.5 72B — best multilingual + logic. Strongest non-English reasoning and mathematical ability."
+
+  # ════════════════════════════════════════════════
+  # 💻  CODING / DEVOPS / AUTOMATION
+  # ════════════════════════════════════════════════
+  - id: deepseek-coder-v2
+    displayName: "DeepSeek Coder V3"
+    type: code
+    defaultTemperature: 0.2
+    defaultMaxTokens: 8192
+    description: "DeepSeek Coder V2/V3 — strongest open-source coder. Git tools, debugging, refactoring, smart agents."
+
+  - id: codellama:70b
+    displayName: "Code LLaMA 70B"
+    type: code
+    defaultTemperature: 0.2
+    defaultMaxTokens: 4096
+    description: "Meta Code LLaMA 70B — stable, predictable, enterprise-grade code generation."
+
+  - id: starcoder2
+    displayName: "StarCoder2"
+    type: code
+    defaultTemperature: 0.2
+    defaultMaxTokens: 4096
+    description: "BigCode StarCoder2 — multi-language repos, fill-in-the-middle, large codebase understanding."
+
   - id: codellama
-    displayName: "Code LLaMA"
+    displayName: "Code LLaMA 7B"
     type: code
     defaultTemperature: 0.2
     defaultMaxTokens: 4096
-    description: "Optimized for code generation and completion."
+    description: "Code LLaMA 7B — fast code model for lightweight tasks."
 
-  - id: "codellama:instruct"
-    displayName: "Code LLaMA Instruct"
-    type: code
-    defaultTemperature: 0.2
-    defaultMaxTokens: 4096
-    description: "Code LLaMA fine-tuned for code instructions."
+  # ════════════════════════════════════════════════
+  # 👁️  VISION (IMAGE READ / MULTIMODAL)
+  # ════════════════════════════════════════════════
+  - id: llava:v1.6
+    displayName: "LLaVA 1.6"
+    type: vision
+    defaultTemperature: 0.3
+    defaultMaxTokens: 2048
+    description: "LLaVA 1.6 — best open-source vision-language model. Image understanding, UI analysis, diagram interpretation."
 
-  # ── Vision / multimodal models ────────────────────────────
+  - id: qwen2-vl
+    displayName: "Qwen-VL"
+    type: vision
+    defaultTemperature: 0.3
+    defaultMaxTokens: 2048
+    description: "Qwen Vision-Language — strong OCR and document reading. Best for text extraction from images."
+
+  - id: moondream
+    displayName: "Moondream 2"
+    type: vision
+    defaultTemperature: 0.3
+    defaultMaxTokens: 1024
+    description: "Moondream 2 — extremely fast and lightweight vision model. Best for real-time mobile/edge vision tasks."
+
   - id: llava
     displayName: "LLaVA"
     type: vision
     defaultTemperature: 0.3
     defaultMaxTokens: 2048
-    description: "Large Language and Vision Assistant — image understanding & OCR."
+    description: "LLaVA base — classic vision-language assistant."
 
-  - id: "llava:13b"
-    displayName: "LLaVA 13B"
-    type: vision
-    defaultTemperature: 0.3
-    defaultMaxTokens: 2048
-    description: "Higher capacity LLaVA for detailed visual analysis."
-
-  # ── Image generation models ───────────────────────────────
-  - id: sdxl
-    displayName: "Stable Diffusion XL"
-    type: image-gen
-    defaultTemperature: 0
-    defaultMaxTokens: 0
-    description: "High-quality 1024×1024 image generation. Requires COMFYUI_URL or SD_URL."
-
-  - id: sdxl-turbo
-    displayName: "SDXL Turbo"
-    type: image-gen
-    defaultTemperature: 0
-    defaultMaxTokens: 0
-    description: "Fast single-step SDXL generation. Requires COMFYUI_URL or SD_URL."
-
+  # ════════════════════════════════════════════════
+  # 🎨  IMAGE GENERATION
+  # ════════════════════════════════════════════════
   - id: flux
-    displayName: "Flux Dev"
+    displayName: "Flux 1.1 Dev"
     type: image-gen
     defaultTemperature: 0
     defaultMaxTokens: 0
-    description: "Black Forest Labs Flux — high quality. Requires FAL_API_KEY."
+    description: "Black Forest Labs Flux 1.1 — best open-source image generator. Requires FAL_API_KEY."
 
   - id: flux-schnell
     displayName: "Flux Schnell"
     type: image-gen
     defaultTemperature: 0
     defaultMaxTokens: 0
-    description: "Flux fast/distilled variant — 4 steps. Requires FAL_API_KEY."
+    description: "Flux fast/distilled variant — 4-step generation. Requires FAL_API_KEY."
 
-  # ── Embedding models ──────────────────────────────────────
+  - id: sdxl
+    displayName: "SDXL 1.0"
+    type: image-gen
+    defaultTemperature: 0
+    defaultMaxTokens: 0
+    description: "Stable Diffusion XL 1.0 — stable and highly customizable 1024×1024 generation. Requires COMFYUI_URL or SD_URL."
+
+  - id: sd3
+    displayName: "Stable Diffusion 3"
+    type: image-gen
+    defaultTemperature: 0
+    defaultMaxTokens: 0
+    description: "Stable Diffusion 3 — best photorealism. Requires COMFYUI_URL or SD_URL."
+
+  - id: sdxl-turbo
+    displayName: "SDXL Turbo"
+    type: image-gen
+    defaultTemperature: 0
+    defaultMaxTokens: 0
+    description: "SDXL fast single-step distilled variant. Requires COMFYUI_URL or SD_URL."
+
+  # ════════════════════════════════════════════════
+  # ⚡  SMALL / FAST  (Edge / Mobile / Low-latency)
+  # ════════════════════════════════════════════════
+  - id: phi3:mini
+    displayName: "Phi-3 Mini"
+    type: fast
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "Microsoft Phi-3 Mini — best tiny model. Fast mode, offline mode, lightweight agents, mobile."
+
+  - id: gemma2:9b
+    displayName: "Gemma 2 9B"
+    type: fast
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "Google Gemma 2 9B — high quality in a small size. Excellent for low-power servers."
+
+  - id: mistral
+    displayName: "Mistral 7B"
+    type: fast
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "Mistral 7B — fast and reliable. Great fallback model."
+
+  - id: mixtral
+    displayName: "Mixtral 8x7B"
+    type: fast
+    defaultTemperature: 0.7
+    defaultMaxTokens: 4096
+    description: "Mistral MoE 8×7B — high capability with efficient inference."
+
+  # ════════════════════════════════════════════════
+  # 🔢  EMBEDDINGS
+  # ════════════════════════════════════════════════
   - id: nomic-embed-text
     displayName: "Nomic Embed Text"
     type: embed
     defaultTemperature: 0
     defaultMaxTokens: 512
-    description: "Embedding model for RAG and similarity search."
+    description: "Nomic Embed — default RAG embedding model. Fast and accurate."
 
   - id: mxbai-embed-large
     displayName: "MxBAI Embed Large"
     type: embed
     defaultTemperature: 0
     defaultMaxTokens: 512
-    description: "High-quality large embedding model for retrieval."
+    description: "MxBAI Embed Large — high-quality retrieval embeddings."
 
+# ────────────────────────────────────────────────
+# Default routing shortcuts (used by routeModel())
+# ────────────────────────────────────────────────
 routing:
-  chat: llama3
-  code: codellama
-  vision: llava
-  embed: nomic-embed-text
-  image-gen: sdxl
+  chat:      llama3.1:70b
+  reasoning: deepseek-r1
+  code:      deepseek-coder-v2
+  vision:    llava:v1.6
+  ocr:       qwen2-vl
+  fast:      phi3:mini
+  multilingual: qwen2.5:72b
+  image-gen: flux
+  embed:     nomic-embed-text
