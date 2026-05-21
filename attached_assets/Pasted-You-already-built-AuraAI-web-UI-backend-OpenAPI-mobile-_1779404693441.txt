@@ -1,0 +1,58 @@
+You already built AuraAI (web UI + backend + OpenAPI + mobile responsive layout).
+
+Now ALIGN the existing codebase to this final spec:
+
+1) API LAYOUT
+
+External API (/v1/)
+- POST /v1/chat              (streaming, optional agent loop)
+- POST /v1/embeddings
+- POST /v1/vision/read       (image understanding via LLaVA)
+- POST /v1/vision/generate   (image generation via SDXL/Flux backend)
+- POST /v1/rag/query
+- POST /v1/tools/run         (safe tools only)
+- POST /v1/users/login
+- POST /v1/users/register
+- GET  /v1/users/me
+- GET  /v1/admin/models
+- GET  /v1/admin/logs
+- POST /v1/admin/reload-config
+
+Internal API (/internal/)
+- POST /internal/router/route
+- POST /internal/ollama/generate
+- POST /internal/ollama/embed
+- POST /internal/ollama/vision
+- POST /internal/vision/read
+- POST /internal/vision/generate
+- POST /internal/tools/execute
+- POST /internal/memory/store
+- POST /internal/memory/search
+- POST /internal/memory/delete
+- POST /internal/agent/step
+- POST /internal/agent/run
+- POST /internal/admin/restart
+- POST /internal/admin/pull-models
+- POST /internal/admin/flush-cache
+
+2) GUARANTEES
+
+- Implement streaming responses for /v1/chat (SSE or chunked).
+- Wire the agent loop so /v1/chat can optionally call tools via /internal/tools/execute.
+- Implement vision read + generate using the existing architecture (Ollama/other backend).
+- Enforce JWT + API key + RBAC on all /v1 routes, and internal token + IP allowlist on /internal routes.
+- Ensure the OpenAPI spec matches these routes and re-run codegen so the frontend hooks stay in sync.
+- Keep the mobile-responsive UI you already built; just wire any new endpoints into the existing pages (vision, tools, admin).
+
+3) HOW TO WORK
+
+- First, diff the current routes vs this spec and list what’s missing or misnamed.
+- Then, add/rename routes and update the OpenAPI spec.
+- Re-run codegen and fix any type errors.
+- Finally, verify:
+  - /v1/chat streams
+  - /v1/vision/read and /v1/vision/generate work end-to-end
+  - Auth and RBAC are enforced
+  - Frontend uses the new hooks without breaking mobile layout.
+
+Do NOT rewrite everything from scratch. Evolve the existing codebase to match this spec.

@@ -113,9 +113,11 @@ export function Chat() {
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [agentRunning, setAgentRunning] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const [creatingSession, setCreatingSession] = useState(false);
+  const pendingMessageRef = useRef<string | null>(null);
 
   const queryClient = useQueryClient();
-  const { data: sessions } = useListSessions();
+  const { data: sessions, isLoading: sessionsLoading } = useListSessions();
   const { data: models } = useListModels();
   const { data: sessionDetail, isLoading: isLoadingSession } = useGetSession(
     activeSessionId || "",
@@ -125,11 +127,26 @@ export function Chat() {
   const chatMutation = useChat();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Pick first existing session, or auto-create one when list loads empty
   useEffect(() => {
+    if (sessionsLoading) return;
     if (sessions && sessions.length > 0 && !activeSessionId) {
       setActiveSessionId(sessions[0]!.id);
+    } else if (sessions && sessions.length === 0 && !activeSessionId && !creatingSession) {
+      setCreatingSession(true);
+      createSession.mutate(
+        { data: { title: "New Chat", mode: "chat" } },
+        {
+          onSuccess: (s) => {
+            queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+            setActiveSessionId(s.id);
+            setCreatingSession(false);
+          },
+          onError: () => setCreatingSession(false),
+        }
+      );
     }
-  }, [sessions, activeSessionId]);
+  }, [sessions, sessionsLoading, activeSessionId, creatingSession]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -148,6 +165,38 @@ export function Chat() {
     })),
     ...localMessages,
   ];
+
+  const sendToSession = (sessionId: string, message: string) => {
+    chatMutation.mutate(
+      {
+        data: {
+          sessionId,
+          message,
+          mode: mode === "code" ? "code" : "chat",
+          ragEnabled: sessionDetail?.session?.ragEnabled ?? false,
+          toolsEnabled: sessionDetail?.session?.toolsEnabled ?? false,
+          model: sessionDetail?.session?.model ?? "llama3",
+        },
+      },
+      {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["session", sessionId] }),
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? err?.message ?? "Request failed";
+          const isOllama = msg.includes("ECONNREFUSED") || msg.includes("11434") || msg.includes("Ollama");
+          setLocalMessages((p) => [
+            ...p,
+            {
+              id: `err-${Date.now()}`,
+              role: "assistant" as const,
+              content: isOllama
+                ? "⚠️ Ollama is not reachable. Set the OLLAMA_BASE_URL environment variable to point to your running Ollama instance, then restart the API server."
+                : `⚠️ ${msg}`,
+            },
+          ]);
+        },
+      }
+    );
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -171,10 +220,27 @@ export function Chat() {
       return;
     }
 
-    if (!activeSessionId || !sessionDetail?.session) return;
-    chatMutation.mutate(
-      { data: { sessionId: activeSessionId, message, mode: mode === "code" ? "code" : "chat", ragEnabled: sessionDetail.session.ragEnabled, toolsEnabled: sessionDetail.session.toolsEnabled, model: sessionDetail.session.model } },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["session", activeSessionId] }) }
+    // If a session is ready, send immediately
+    if (activeSessionId && sessionDetail?.session) {
+      sendToSession(activeSessionId, message);
+      return;
+    }
+
+    // No session yet — auto-create one, then send
+    setLocalMessages((p) => [...p, { id: `u-${Date.now()}`, role: "user", content: message }]);
+    createSession.mutate(
+      { data: { title: message.slice(0, 40), mode: "chat" } },
+      {
+        onSuccess: (s) => {
+          queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+          setActiveSessionId(s.id);
+          setLocalMessages([]);
+          sendToSession(s.id, message);
+        },
+        onError: () => {
+          setLocalMessages((p) => [...p, { id: `e-${Date.now()}`, role: "assistant", content: "Failed to create session. Please try again." }]);
+        },
+      }
     );
   };
 
@@ -365,15 +431,18 @@ export function Chat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              placeholder="Send a message…"
+              placeholder={creatingSession ? "Setting up session…" : "Send a message…"}
               className="flex-1 font-mono text-sm bg-card border-border h-12"
-              disabled={!activeSessionId || isLoading}
+              disabled={isLoading || creatingSession}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
             />
           )}
           <Button
             className={`h-12 w-12 shrink-0 ${mode === "agent" ? "bg-emerald-500 hover:bg-emerald-500/90 text-white" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}
             onClick={handleSend}
-            disabled={(!activeSessionId && mode !== "agent") || !input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || creatingSession}
           >
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </Button>

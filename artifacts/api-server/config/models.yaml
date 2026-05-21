@@ -1,4 +1,5 @@
 models:
+  # ── Chat models ──────────────────────────────────────────
   - id: llama3
     displayName: "LLaMA 3"
     type: chat
@@ -12,27 +13,6 @@ models:
     defaultTemperature: 0.7
     defaultMaxTokens: 2048
     description: "LLaMA 3 fine-tuned for instruction following."
-
-  - id: codellama
-    displayName: "Code LLaMA"
-    type: code
-    defaultTemperature: 0.2
-    defaultMaxTokens: 4096
-    description: "Optimized for code generation and completion."
-
-  - id: "codellama:instruct"
-    displayName: "Code LLaMA Instruct"
-    type: code
-    defaultTemperature: 0.2
-    defaultMaxTokens: 4096
-    description: "Code LLaMA fine-tuned for code instructions."
-
-  - id: llava
-    displayName: "LLaVA"
-    type: vision
-    defaultTemperature: 0.7
-    defaultMaxTokens: 2048
-    description: "Large Language and Vision Assistant — multimodal."
 
   - id: mistral
     displayName: "Mistral 7B"
@@ -48,6 +28,66 @@ models:
     defaultMaxTokens: 4096
     description: "Mistral MoE — high capability, efficient inference."
 
+  # ── Code models ───────────────────────────────────────────
+  - id: codellama
+    displayName: "Code LLaMA"
+    type: code
+    defaultTemperature: 0.2
+    defaultMaxTokens: 4096
+    description: "Optimized for code generation and completion."
+
+  - id: "codellama:instruct"
+    displayName: "Code LLaMA Instruct"
+    type: code
+    defaultTemperature: 0.2
+    defaultMaxTokens: 4096
+    description: "Code LLaMA fine-tuned for code instructions."
+
+  # ── Vision / multimodal models ────────────────────────────
+  - id: llava
+    displayName: "LLaVA"
+    type: vision
+    defaultTemperature: 0.3
+    defaultMaxTokens: 2048
+    description: "Large Language and Vision Assistant — image understanding & OCR."
+
+  - id: "llava:13b"
+    displayName: "LLaVA 13B"
+    type: vision
+    defaultTemperature: 0.3
+    defaultMaxTokens: 2048
+    description: "Higher capacity LLaVA for detailed visual analysis."
+
+  # ── Image generation models ───────────────────────────────
+  - id: sdxl
+    displayName: "Stable Diffusion XL"
+    type: image-gen
+    defaultTemperature: 0
+    defaultMaxTokens: 0
+    description: "High-quality 1024×1024 image generation. Requires COMFYUI_URL or SD_URL."
+
+  - id: sdxl-turbo
+    displayName: "SDXL Turbo"
+    type: image-gen
+    defaultTemperature: 0
+    defaultMaxTokens: 0
+    description: "Fast single-step SDXL generation. Requires COMFYUI_URL or SD_URL."
+
+  - id: flux
+    displayName: "Flux Dev"
+    type: image-gen
+    defaultTemperature: 0
+    defaultMaxTokens: 0
+    description: "Black Forest Labs Flux — high quality. Requires FAL_API_KEY."
+
+  - id: flux-schnell
+    displayName: "Flux Schnell"
+    type: image-gen
+    defaultTemperature: 0
+    defaultMaxTokens: 0
+    description: "Flux fast/distilled variant — 4 steps. Requires FAL_API_KEY."
+
+  # ── Embedding models ──────────────────────────────────────
   - id: nomic-embed-text
     displayName: "Nomic Embed Text"
     type: embed
@@ -55,8 +95,16 @@ models:
     defaultMaxTokens: 512
     description: "Embedding model for RAG and similarity search."
 
+  - id: mxbai-embed-large
+    displayName: "MxBAI Embed Large"
+    type: embed
+    defaultTemperature: 0
+    defaultMaxTokens: 512
+    description: "High-quality large embedding model for retrieval."
+
 routing:
   chat: llama3
   code: codellama
   vision: llava
   embed: nomic-embed-text
+  image-gen: sdxl

@@ -62,7 +62,7 @@
   --background: 220 16% 7%;
   --foreground: 210 20% 90%;
   --border: 220 16% 15%;
-  
+
   --card: 220 16% 9%;
   --card-foreground: 210 20% 90%;
   --card-border: 220 16% 18%;
@@ -107,13 +107,58 @@
   --app-font-sans: 'Inter', sans-serif;
   --app-font-mono: 'JetBrains Mono', 'Menlo', monospace;
   --radius: 0.3rem;
+
+  /* Safe area insets (populated by the browser on notched/gesture devices) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+}
+
+/* Ensure the whole page fills the viewport correctly on all mobile browsers */
+html {
+  height: 100%;
+  /* Prevent rubber-band overscroll from showing white background */
+  background-color: hsl(220 16% 7%);
+  overscroll-behavior: none;
+}
+
+body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 @layer base {
   * {
     @apply border-border;
+    /* Smoother touch scrolling on iOS */
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+/* Utility: pad bottom nav for home-bar / notch devices */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
 }
