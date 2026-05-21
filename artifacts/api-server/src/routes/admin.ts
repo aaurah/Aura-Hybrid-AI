@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { sessionsTable, messagesTable, documentsTable, logsTable } from "@workspace/db";
 import { sql, desc } from "drizzle-orm";
 import { ollamaListModels, ollamaVersion, checkOllamaConnection, OLLAMA_BASE_URL } from "../lib/ollama";
+import { reloadConfig, getModelRegistry } from "../lib/config";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -57,13 +58,14 @@ router.get("/v1/admin/stats", async (_req, res) => {
   }
 });
 
-router.get("/v1/admin/logs", async (_req, res) => {
+router.get("/v1/admin/logs", async (req, res) => {
   try {
+    const limit = Math.min(Number(req.query["limit"]) || 100, 500);
     const logs = await db
       .select()
       .from(logsTable)
       .orderBy(desc(logsTable.createdAt))
-      .limit(100);
+      .limit(limit);
 
     res.json(
       logs.map((l) => ({
@@ -109,6 +111,49 @@ router.get("/v1/admin/ollama-status", async (_req, res) => {
     });
   } catch (err) {
     logger.error({ err }, "Ollama status error");
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// GET /v1/admin/models — registry enriched with Ollama availability
+router.get("/v1/admin/models", async (_req, res) => {
+  try {
+    const registry = getModelRegistry();
+    let ollamaModels: string[] = [];
+    try {
+      const models = await ollamaListModels();
+      ollamaModels = models.map((m) => m.name.replace(/:latest$/, ""));
+    } catch {
+      // Ollama offline
+    }
+
+    const enriched = registry.map((m) => ({
+      ...m,
+      available: ollamaModels.some(
+        (om) => om === m.id || om.startsWith(m.id.split(":")[0]!)
+      ),
+    }));
+
+    res.json({ models: enriched });
+  } catch (err) {
+    logger.error({ err }, "Admin models error");
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// POST /v1/admin/reload-config — hot-reload config files without restart
+router.post("/v1/admin/reload-config", (_req, res) => {
+  try {
+    const cfg = reloadConfig();
+    logger.info("Config reloaded via admin endpoint");
+    res.json({
+      status: "ok",
+      message: "Config reloaded successfully",
+      models: cfg.models.models.length,
+      tools: cfg.tools.tools.length,
+    });
+  } catch (err) {
+    logger.error({ err }, "Admin reload-config error");
     res.status(500).json({ error: String(err) });
   }
 });

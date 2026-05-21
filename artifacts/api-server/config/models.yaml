@@ -1,0 +1,62 @@
+models:
+  - id: llama3
+    displayName: "LLaMA 3"
+    type: chat
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "Meta's LLaMA 3 — general purpose chat model."
+
+  - id: "llama3:instruct"
+    displayName: "LLaMA 3 Instruct"
+    type: chat
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "LLaMA 3 fine-tuned for instruction following."
+
+  - id: codellama
+    displayName: "Code LLaMA"
+    type: code
+    defaultTemperature: 0.2
+    defaultMaxTokens: 4096
+    description: "Optimized for code generation and completion."
+
+  - id: "codellama:instruct"
+    displayName: "Code LLaMA Instruct"
+    type: code
+    defaultTemperature: 0.2
+    defaultMaxTokens: 4096
+    description: "Code LLaMA fine-tuned for code instructions."
+
+  - id: llava
+    displayName: "LLaVA"
+    type: vision
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "Large Language and Vision Assistant — multimodal."
+
+  - id: mistral
+    displayName: "Mistral 7B"
+    type: chat
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "Excellent reasoning in a compact 7B package."
+
+  - id: mixtral
+    displayName: "Mixtral 8x7B"
+    type: chat
+    defaultTemperature: 0.7
+    defaultMaxTokens: 4096
+    description: "Mistral MoE — high capability, efficient inference."
+
+  - id: nomic-embed-text
+    displayName: "Nomic Embed Text"
+    type: embed
+    defaultTemperature: 0
+    defaultMaxTokens: 512
+    description: "Embedding model for RAG and similarity search."
+
+routing:
+  chat: llama3
+  code: codellama
+  vision: llava
+  embed: nomic-embed-text

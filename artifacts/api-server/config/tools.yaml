@@ -1,0 +1,60 @@
+tools:
+  - name: http_fetch
+    type: http
+    tier: external
+    description: "Make HTTP requests to external URLs."
+    allowedMethods: [GET, POST, PUT, DELETE]
+    timeout: 10000
+    maxResponseBytes: 65536
+
+  - name: shell_exec
+    type: shell
+    tier: external
+    description: "Execute restricted read-only shell commands."
+    allowedCommands: [ls, cat, grep, echo, pwd, env, date, whoami, find, head, tail, wc, sort, uniq, cut]
+    timeout: 5000
+
+  - name: git_status
+    type: git
+    tier: external
+    description: "Get git repository status."
+    readOnly: true
+    timeout: 5000
+
+  - name: git_diff
+    type: git
+    tier: external
+    description: "Get git diff for changes."
+    readOnly: true
+    timeout: 5000
+
+  - name: git_log
+    type: git
+    tier: external
+    description: "Get recent git commit history."
+    readOnly: true
+    timeout: 5000
+
+  - name: internal_http
+    type: http
+    tier: internal
+    description: "Full HTTP client with auth headers support."
+    timeout: 30000
+    maxResponseBytes: 1048576
+
+  - name: internal_shell
+    type: shell
+    tier: internal
+    description: "Unrestricted shell command execution (internal only)."
+    allowedCommands: ["*"]
+    timeout: 30000
+
+  - name: code_exec
+    type: eval
+    tier: internal
+    description: "Safe JavaScript code evaluation."
+    timeout: 5000
+
+routing:
+  maxToolCallsPerTurn: 5
+  allowParallelCalls: true

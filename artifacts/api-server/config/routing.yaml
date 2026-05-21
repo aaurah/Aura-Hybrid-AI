@@ -1,0 +1,57 @@
+routing:
+  rules:
+    - name: code_routing
+      condition:
+        mode: code
+      target: codellama
+      priority: 10
+
+    - name: vision_routing
+      condition:
+        mode: vision
+      target: llava
+      priority: 10
+
+    - name: long_context
+      condition:
+        minTokens: 3000
+      target: mixtral
+      priority: 5
+
+    - name: default_chat
+      condition:
+        mode: chat
+      target: llama3
+      priority: 1
+
+  fallback: llama3
+  embedModel: nomic-embed-text
+
+agent:
+  maxSteps: 10
+  maxTokensPerStep: 2048
+  toolCallFormat: "json"
+  systemPrompt: |
+    You are AuraAI, an intelligent AI agent with access to tools.
+    When you need to use a tool, respond with:
+    <tool_call>{"tool": "tool_name", "input": {...}}</tool_call>
+    After receiving tool results, continue reasoning and use more tools if needed.
+    When done, provide a final answer without any tool_call tags.
+
+memory:
+  maxChunksPerQuery: 5
+  chunkSize: 500
+  chunkOverlap: 50
+  similarityThreshold: 0.3
+
+security:
+  jwtExpiresIn: "24h"
+  apiKeyPrefix: "aura_"
+  internalNetworkCidrs: ["127.0.0.1/32", "::1/128"]
+  rateLimits:
+    external:
+      windowMs: 60000
+      max: 100
+    internal:
+      windowMs: 60000
+      max: 1000

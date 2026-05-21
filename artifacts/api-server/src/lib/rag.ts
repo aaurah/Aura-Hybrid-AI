@@ -1,16 +1,17 @@
 import { db } from "@workspace/db";
 import { documentChunksTable } from "@workspace/db";
 
-const CHUNK_SIZE = 500;
-const CHUNK_OVERLAP = 50;
-
-export function chunkText(text: string): string[] {
+export function chunkText(
+  text: string,
+  chunkSize = 500,
+  chunkOverlap = 50
+): string[] {
   const chunks: string[] = [];
   let start = 0;
   while (start < text.length) {
-    const end = Math.min(start + CHUNK_SIZE, text.length);
+    const end = Math.min(start + chunkSize, text.length);
     chunks.push(text.slice(start, end).trim());
-    start += CHUNK_SIZE - CHUNK_OVERLAP;
+    start += chunkSize - chunkOverlap;
   }
   return chunks.filter((c) => c.length > 20);
 }
@@ -36,7 +37,7 @@ export interface RagChunkResult {
 
 export async function findRelevantChunks(
   queryEmbedding: number[],
-  topK: number = 3
+  topK = 3
 ): Promise<RagChunkResult[]> {
   const chunks = await db.select().from(documentChunksTable);
 
