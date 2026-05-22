@@ -9,6 +9,7 @@ import sessionsRouter from "./sessions";
 import adminRouter from "./admin";
 import authRouter from "./auth";
 import visionRouter from "./vision";
+import githubRouter from "./github";
 
 const router: IRouter = Router();
 
@@ -31,6 +32,9 @@ router.use(sessionsRouter);
 
 // Model registry
 router.use(modelsRouter);
+
+// GitHub integration
+router.use(githubRouter);
 
 // Admin & observability
 router.use(adminRouter);

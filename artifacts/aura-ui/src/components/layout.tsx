@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Cpu, MessageSquare, Box, Database, Wrench, Settings,
-  Activity, LogOut, User, Menu, X, Bot,
+  Activity, LogOut, User, Menu, X, Bot, Github,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth";
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/models",   label: "Models",    icon: Cpu           },
   { href: "/rag",      label: "Knowledge", icon: Database      },
   { href: "/tools",    label: "Tools",     icon: Wrench        },
+  { href: "/github",   label: "GitHub",    icon: Github        },
   { href: "/admin",    label: "Admin",     icon: Activity      },
 ];
 
@@ -29,7 +30,7 @@ const BOTTOM_TABS = [
   { href: "/chat",     label: "Chat",     icon: MessageSquare },
   { href: "/sessions", label: "Sessions", icon: Box           },
   { href: "/rag",      label: "Knowledge",icon: Database      },
-  { href: "/tools",    label: "Tools",    icon: Wrench        },
+  { href: "/github",   label: "GitHub",   icon: Github        },
   { href: "/admin",    label: "Admin",    icon: Activity      },
 ];
 

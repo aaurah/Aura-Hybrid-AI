@@ -12,6 +12,7 @@ import { Models } from "@/pages/models";
 import { Rag } from "@/pages/rag";
 import { Tools } from "@/pages/tools";
 import { Admin } from "@/pages/admin";
+import { GitHub } from "@/pages/github";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ function Router() {
           <Route path="/rag" component={Rag} />
           <Route path="/tools" component={Tools} />
           <Route path="/admin" component={Admin} />
+          <Route path="/github" component={GitHub} />
           <Route component={NotFound} />
         </Switch>
       </Layout>

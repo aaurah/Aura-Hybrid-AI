@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   Send, Terminal, Image as ImageIcon, Code, Sparkles, Loader2, Plus,
   Bot, Wrench, Database, ChevronDown, User, Cpu, SlidersHorizontal, X,
-  Brain, Zap, Eye, Hash, GitBranch, Paperclip,
+  Brain, Zap, Eye, Hash, GitBranch, Paperclip, Trash2, Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   useChat, useListSessions, useGetSession, useListModels,
-  useCreateSession, useUpdateSession, getListSessionsQueryKey,
+  useCreateSession, useUpdateSession, useDeleteSession, getListSessionsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -86,6 +86,104 @@ async function runAgent(params: { message: string; model?: string }) {
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ finalAnswer: string; steps: AgentStep[]; model: string }>;
+}
+
+// ── Sidebar session row — swipe-left to reveal delete ────────────────────────
+function SidebarSessionItem({
+  session, isActive, onSelect, onDelete, isDeleting,
+}: {
+  session: { id: string; title: string; mode: string };
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  isDeleting: boolean;
+}) {
+  const [swipeX, setSwipeX] = useState(0);
+  const committedRef = useRef(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const startSwipeXRef = useRef(0);
+  const REVEAL = 68;
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    committedRef.current = false;
+    startXRef.current = e.clientX;
+    startYRef.current = e.clientY;
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const dx = e.clientX - startXRef.current;
+    const dy = e.clientY - startYRef.current;
+    if (!committedRef.current) {
+      // Require clear horizontal intent before taking over from vertical scroll
+      if (Math.abs(dx) < 6) return;
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      committedRef.current = true;
+      startSwipeXRef.current = swipeX;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    }
+    setSwipeX(Math.min(0, Math.max(-REVEAL, startSwipeXRef.current + dx)));
+  };
+
+  const onPointerUp = () => {
+    if (!committedRef.current) return;
+    committedRef.current = false;
+    setSwipeX((prev) => (prev < -REVEAL / 2 ? -REVEAL : 0));
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (swipeX !== 0) { setSwipeX(0); e.preventDefault(); return; }
+    onSelect();
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-lg mx-1.5 mb-0.5">
+      {/* Delete zone — revealed by swiping left */}
+      <div
+        className="absolute inset-y-0 right-0 w-[68px] bg-destructive flex items-center justify-center cursor-pointer"
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+      >
+        {isDeleting
+          ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+          : <Trash2 className="w-3.5 h-3.5 text-white" />}
+      </div>
+
+      {/* Content — slides left over the delete zone */}
+      <div
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: committedRef.current ? "none" : "transform 0.2s ease",
+          touchAction: "pan-y",
+        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onClick={handleClick}
+        className="relative z-10"
+      >
+        <div className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer select-none transition-colors ${
+          isActive
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        } ${isDeleting ? "opacity-40 pointer-events-none" : ""}`}>
+          {session.mode === "code"
+            ? <Code className="w-3.5 h-3.5 shrink-0 opacity-70" />
+            : session.mode === "agent"
+            ? <Bot className="w-3.5 h-3.5 shrink-0 opacity-70" />
+            : <Terminal className="w-3.5 h-3.5 shrink-0 opacity-70" />}
+          <span className="flex-1 text-xs truncate">{session.title}</span>
+          {/* Desktop hover × */}
+          <span
+            className="hidden group-hover:flex items-center justify-center w-5 h-5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors shrink-0"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          >
+            <X className="w-3 h-3" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SettingsPanel({
@@ -168,6 +266,7 @@ export function Chat() {
   const [agentRunning, setAgentRunning] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [creatingSession, setCreatingSession] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -184,6 +283,25 @@ export function Chat() {
   const createSession = useCreateSession();
   const chatMutation = useChat();
   const updateSession = useUpdateSession();
+  const deleteSessionMutation = useDeleteSession();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteSession = (sessionId: string) => {
+    setDeletingId(sessionId);
+    deleteSessionMutation.mutate(
+      { sessionId },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+          if (activeSessionId === sessionId) {
+            const remaining = (sessions ?? []).filter((s) => s.id !== sessionId);
+            setActiveSessionId(remaining[0]?.id ?? null);
+          }
+        },
+        onSettled: () => setDeletingId(null),
+      }
+    );
+  };
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Local toggle state — immediately reflects UI; persisted via PATCH on change
@@ -407,62 +525,92 @@ export function Chat() {
   const isLoading = chatMutation.isPending || agentRunning;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Session tabs */}
-      <div className="flex border-b border-border bg-card/50 px-2 py-1.5 gap-1.5 overflow-x-auto items-center shrink-0">
-        <div className="flex gap-1.5 flex-1 overflow-x-auto min-w-0">
+    <div className="flex h-full overflow-hidden">
+
+      {/* ── Desktop sidebar ─────────────────────────────────────────── */}
+      <div className="hidden md:flex w-56 flex-col border-r border-border bg-card/30 shrink-0">
+        <div className="px-3 py-2.5 border-b border-border flex items-center gap-2 shrink-0">
+          <span className="text-xs font-mono font-semibold flex-1 text-muted-foreground uppercase tracking-wide">Chats</span>
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 w-7 p-0"
+            onClick={handleNewSession}
+            disabled={creatingSession}
+          >
+            {creatingSession
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Plus className="w-3.5 h-3.5" />}
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-1.5">
           {sessions?.map((s) => (
-            <button
+            <SidebarSessionItem
               key={s.id}
-              onClick={() => setActiveSessionId(s.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs whitespace-nowrap border shrink-0 transition-colors ${
-                activeSessionId === s.id
-                  ? "bg-primary/10 border-primary/30 text-primary"
-                  : "bg-background border-border text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {s.mode === "code" ? <Code className="w-3 h-3" /> : <Terminal className="w-3 h-3" />}
-              <span className="max-w-[80px] truncate">{s.title}</span>
-            </button>
+              session={s}
+              isActive={activeSessionId === s.id}
+              onSelect={() => setActiveSessionId(s.id)}
+              onDelete={() => handleDeleteSession(s.id)}
+              isDeleting={deletingId === s.id}
+            />
           ))}
         </div>
-        <Button variant="ghost" size="sm" className="shrink-0 h-7 w-7 p-0" onClick={handleNewSession}>
-          <Plus className="w-3.5 h-3.5" />
-        </Button>
-
-        {/* Mode switcher */}
-        <div className="flex gap-0.5 bg-muted rounded-md p-0.5 shrink-0">
-          {(["chat", "code", "agent"] as ChatMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-colors ${
-                mode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              {MODE_ICONS[m]}
-              <span className="hidden sm:inline">{MODE_LABEL[m]}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Settings trigger (mobile) */}
-        {mode !== "agent" && sessionDetail?.session && (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="md:hidden shrink-0 h-7 w-7 p-0">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-72 bg-card border-border p-0">
-              <SheetHeader className="px-4 pt-4 pb-2">
-                <SheetTitle className="text-sm font-mono">Session Settings</SheetTitle>
-              </SheetHeader>
-              <SettingsPanel session={sessionDetail.session as any} models={models} />
-            </SheetContent>
-          </Sheet>
-        )}
       </div>
+
+      {/* ── Main chat column ────────────────────────────────────────── */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+        {/* Top bar: mobile hamburger · session title · mode switcher · mobile settings */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card/50 shrink-0">
+          <Button
+            variant="ghost" size="sm"
+            className="md:hidden h-7 w-7 p-0 shrink-0"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="w-4 h-4" />
+          </Button>
+          <span className="flex-1 text-xs font-mono text-muted-foreground truncate min-w-0">
+            {sessionDetail?.session?.title ?? "New Chat"}
+          </span>
+          {/* Mode switcher */}
+          <div className="flex gap-0.5 bg-muted rounded-md p-0.5 shrink-0">
+            {(["chat", "code", "agent"] as ChatMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                  mode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                }`}
+              >
+                {MODE_ICONS[m]}
+                <span className="hidden sm:inline">{MODE_LABEL[m]}</span>
+              </button>
+            ))}
+          </div>
+          {/* Settings trigger (mobile) */}
+          {mode !== "agent" && sessionDetail?.session && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden shrink-0 h-7 w-7 p-0">
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 bg-card border-border p-0">
+                <SheetHeader className="px-4 pt-4 pb-2">
+                  <SheetTitle className="text-sm font-mono">Session Settings</SheetTitle>
+                </SheetHeader>
+                <SettingsPanel
+                  session={sessionDetail.session as any}
+                  models={models}
+                  ragEnabled={ragEnabled}
+                  toolsEnabled={toolsEnabled}
+                  onToggleRag={handleToggleRag}
+                  onToggleTools={handleToggleTools}
+                  isSaving={updateSession.isPending}
+                />
+              </SheetContent>
+            </Sheet>
+          )}
+        </div>
 
       {/* Messages + desktop settings panel */}
       <div className="flex flex-1 overflow-hidden">
@@ -585,7 +733,15 @@ export function Chat() {
         {/* Desktop settings panel */}
         {mode !== "agent" && sessionDetail?.session && (
           <div className="hidden md:block w-56 border-l border-border bg-card/30 overflow-y-auto">
-            <SettingsPanel session={sessionDetail.session as any} models={models} />
+            <SettingsPanel
+              session={sessionDetail.session as any}
+              models={models}
+              ragEnabled={ragEnabled}
+              toolsEnabled={toolsEnabled}
+              onToggleRag={handleToggleRag}
+              onToggleTools={handleToggleTools}
+              isSaving={updateSession.isPending}
+            />
           </div>
         )}
       </div>
@@ -673,6 +829,42 @@ export function Chat() {
           </div>
         </div>
       </div>
+      {/* ↑ end main chat column */}
+      </div>
+
+      {/* ── Mobile sidebar sheet ─────────────────────────────────────── */}
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="left" className="w-64 p-0 bg-card border-border flex flex-col">
+          <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
+            <SheetTitle className="text-sm font-mono">Chats</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto py-1.5">
+            {sessions?.map((s) => (
+              <SidebarSessionItem
+                key={s.id}
+                session={s}
+                isActive={activeSessionId === s.id}
+                onSelect={() => { setActiveSessionId(s.id); setSidebarOpen(false); }}
+                onDelete={() => handleDeleteSession(s.id)}
+                isDeleting={deletingId === s.id}
+              />
+            ))}
+          </div>
+          <div className="p-3 border-t border-border shrink-0">
+            <Button
+              className="w-full h-8 text-xs"
+              onClick={() => { handleNewSession(); setSidebarOpen(false); }}
+              disabled={creatingSession}
+            >
+              {creatingSession
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                : <Plus className="w-3.5 h-3.5 mr-1.5" />}
+              New Chat
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
     </div>
   );
 }
