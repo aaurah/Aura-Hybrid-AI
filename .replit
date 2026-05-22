@@ -28,6 +28,10 @@ args = "Start application"
 task = "workflow.run"
 args = "Ollama Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Pull AI Models"
+
 [[workflows.workflow]]
 name = "API Server"
 author = "agent"
@@ -59,6 +63,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "ollama serve"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Pull AI Models"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/pull-models.sh"
 
 [workflows.workflow.metadata]
 outputType = "console"
