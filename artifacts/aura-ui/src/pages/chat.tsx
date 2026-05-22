@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   useChat, useListSessions, useGetSession, useListModels,
-  useCreateSession, getListSessionsQueryKey,
+  useCreateSession, useUpdateSession, getListSessionsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -89,11 +89,16 @@ async function runAgent(params: { message: string; model?: string }) {
 }
 
 function SettingsPanel({
-  session, models, onClose,
+  session, models, ragEnabled, toolsEnabled, onToggleRag, onToggleTools, onClose, isSaving,
 }: {
   session: { model: string; ragEnabled: boolean; toolsEnabled: boolean; mode: string; messageCount: number; createdAt: string } | undefined;
   models: Array<{ id: string }> | undefined;
+  ragEnabled: boolean;
+  toolsEnabled: boolean;
+  onToggleRag: (val: boolean) => void;
+  onToggleTools: (val: boolean) => void;
   onClose?: () => void;
+  isSaving?: boolean;
 }) {
   if (!session) return <p className="text-sm text-muted-foreground font-mono p-4">No session selected</p>;
   return (
@@ -118,14 +123,29 @@ function SettingsPanel({
         </Select>
       </div>
       <div className="space-y-3">
-        <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Capabilities</h3>
+        <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+          Capabilities
+          {isSaving && <span className="ml-2 text-[10px] text-muted-foreground/60 normal-case">saving…</span>}
+        </h3>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground font-mono flex items-center gap-1.5"><Database className="w-3 h-3" />RAG</span>
-          <Switch checked={session.ragEnabled} />
+          <label className="text-xs text-muted-foreground font-mono flex items-center gap-1.5 cursor-pointer select-none">
+            <Database className="w-3 h-3" />RAG
+          </label>
+          <Switch
+            checked={ragEnabled}
+            onCheckedChange={onToggleRag}
+            disabled={isSaving}
+          />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground font-mono flex items-center gap-1.5"><Wrench className="w-3 h-3" />Tools</span>
-          <Switch checked={session.toolsEnabled} />
+          <label className="text-xs text-muted-foreground font-mono flex items-center gap-1.5 cursor-pointer select-none">
+            <Wrench className="w-3 h-3" />Tools
+          </label>
+          <Switch
+            checked={toolsEnabled}
+            onCheckedChange={onToggleTools}
+            disabled={isSaving}
+          />
         </div>
       </div>
       <div>
@@ -163,7 +183,40 @@ export function Chat() {
   );
   const createSession = useCreateSession();
   const chatMutation = useChat();
+  const updateSession = useUpdateSession();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Local toggle state — immediately reflects UI; persisted via PATCH on change
+  const [ragEnabled, setRagEnabled] = useState(false);
+  const [toolsEnabled, setToolsEnabled] = useState(false);
+
+  // Sync toggle state when the active session loads / changes
+  useEffect(() => {
+    if (sessionDetail?.session) {
+      setRagEnabled(sessionDetail.session.ragEnabled ?? false);
+      setToolsEnabled(sessionDetail.session.toolsEnabled ?? false);
+    }
+  }, [sessionDetail?.session?.id, sessionDetail?.session?.ragEnabled, sessionDetail?.session?.toolsEnabled]);
+
+  const handleToggleRag = (val: boolean) => {
+    setRagEnabled(val);
+    if (activeSessionId) {
+      updateSession.mutate(
+        { sessionId: activeSessionId, data: { ragEnabled: val } },
+        { onError: () => setRagEnabled(!val) } // revert on failure
+      );
+    }
+  };
+
+  const handleToggleTools = (val: boolean) => {
+    setToolsEnabled(val);
+    if (activeSessionId) {
+      updateSession.mutate(
+        { sessionId: activeSessionId, data: { toolsEnabled: val } },
+        { onError: () => setToolsEnabled(!val) } // revert on failure
+      );
+    }
+  };
 
   // Pick first existing session, or auto-create one when list loads empty
   useEffect(() => {
@@ -192,6 +245,10 @@ export function Chat() {
 
   useEffect(() => { setLocalMessages([]); }, [activeSessionId]);
 
+  // Deduplicate: once the server refetch returns a message that's already in
+  // localMessages (same id), drop the local copy so it only renders once.
+  const serverMsgIds = new Set((sessionDetail?.messages ?? []).map((m) => m.id));
+
   const allMessages: LocalMessage[] = [
     ...(sessionDetail?.messages ?? []).map((m) => ({
       id: m.id,
@@ -201,7 +258,7 @@ export function Chat() {
       latencyMs: m.latencyMs ?? undefined,
       model: m.model ?? undefined,
     })),
-    ...localMessages,
+    ...localMessages.filter((m) => !serverMsgIds.has(m.id)),
   ];
 
   const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {

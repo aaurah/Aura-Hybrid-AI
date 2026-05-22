@@ -3,3 +3,4 @@ export * from "./messages";
 export * from "./documents";
 export * from "./logs";
 export * from "./users";
+export * from "./integrations";
