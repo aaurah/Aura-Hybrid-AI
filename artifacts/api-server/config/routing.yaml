@@ -4,65 +4,65 @@ routing:
     - name: deep_reasoning
       condition:
         mode: reasoning
-      target: deepseek-r1
+      target: llama3.2:1b
       priority: 20
 
     - name: agent_reasoning
       condition:
         mode: agent
-      target: deepseek-r1
+      target: llama3.2:1b
       priority: 18
 
     # ── Coding ───────────────────────────────────────────────
     - name: code_routing
       condition:
         mode: code
-      target: deepseek-coder-v2
+      target: llama3.2:1b
       priority: 15
 
     # ── Vision (image read) ──────────────────────────────────
     - name: vision_routing
       condition:
         mode: vision
-      target: llava:v1.6
+      target: llama3.2:1b
       priority: 15
 
     - name: ocr_routing
       condition:
         mode: ocr
-      target: qwen2-vl
+      target: llama3.2:1b
       priority: 15
 
     # ── Fast / Edge ──────────────────────────────────────────
     - name: fast_routing
       condition:
         mode: fast
-      target: phi3:mini
+      target: llama3.2:1b
       priority: 12
 
     # ── Multilingual ─────────────────────────────────────────
     - name: multilingual_routing
       condition:
         mode: multilingual
-      target: qwen2.5:72b
+      target: llama3.2:1b
       priority: 12
 
     # ── Long context fallback ────────────────────────────────
     - name: long_context
       condition:
         minTokens: 4000
-      target: llama3.1:70b
+      target: llama3.2:1b
       priority: 5
 
     # ── Default chat ─────────────────────────────────────────
     - name: default_chat
       condition:
         mode: chat
-      target: llama3.1:70b
+      target: llama3.2:1b
       priority: 1
 
-  fallback:   llama3.1:70b
-  fastModel:  phi3:mini
+  fallback:   llama3.2:1b
+  fastModel:  llama3.2:1b
   embedModel: nomic-embed-text
 
 # ─────────────────────────────────────────────────────────────

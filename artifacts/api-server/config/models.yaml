@@ -126,6 +126,13 @@ models:
   # ════════════════════════════════════════════════
   # ⚡  SMALL / FAST  (Edge / Mobile / Low-latency)
   # ════════════════════════════════════════════════
+  - id: llama3.2:1b
+    displayName: "LLaMA 3.2 1B"
+    type: fast
+    defaultTemperature: 0.7
+    defaultMaxTokens: 2048
+    description: "Meta LLaMA 3.2 1B — ultra-lightweight model. Fast responses, runs on CPU with minimal RAM."
+
   - id: phi3:mini
     displayName: "Phi-3 Mini"
     type: fast
@@ -175,12 +182,12 @@ models:
 # Default routing shortcuts (used by routeModel())
 # ────────────────────────────────────────────────
 routing:
-  chat:      llama3.1:70b
-  reasoning: deepseek-r1
-  code:      deepseek-coder-v2
-  vision:    llava:v1.6
-  ocr:       qwen2-vl
-  fast:      phi3:mini
-  multilingual: qwen2.5:72b
-  image-gen: flux
+  chat:      llama3.2:1b
+  reasoning: llama3.2:1b
+  code:      llama3.2:1b
+  vision:    llama3.2:1b
+  ocr:       llama3.2:1b
+  fast:      llama3.2:1b
+  multilingual: llama3.2:1b
+  image-gen: llama3.2:1b
   embed:     nomic-embed-text
