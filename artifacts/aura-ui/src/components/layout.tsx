@@ -200,11 +200,11 @@ export function Layout({ children }: { children: ReactNode }) {
           {BOTTOM_TABS.map((item) => (
             <Link key={item.href} href={item.href} className="flex-1">
               <div className={cn(
-                "flex flex-col items-center justify-center gap-0.5 py-2 transition-colors",
+                "flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] transition-colors",
                 isActive(item.href) ? "text-primary" : "text-muted-foreground"
               )}>
                 <item.icon className="w-5 h-5" />
-                <span className="text-[9px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium">{item.label}</span>
               </div>
             </Link>
           ))}

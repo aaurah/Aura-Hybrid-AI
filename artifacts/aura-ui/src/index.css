@@ -146,8 +146,14 @@ body {
 }
 
 /* Utility: pad bottom nav for home-bar / notch devices */
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+.safe-bottom,
+.safe-area-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 4px);
+}
+
+/* Prevent double-tap zoom on buttons/links on iOS */
+button, a {
+  touch-action: manipulation;
 }
 
 /* Scrollbar styling */
